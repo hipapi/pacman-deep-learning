@@ -231,7 +231,7 @@ class DeepQAgent(PacmanQAgent):
 
     # Define NN
     self.model = Sequential()
-    self.model.add(Dense(300, init='lecun_uniform', input_shape=(10,)))
+    self.model.add(Dense(300, init='lecun_uniform', input_shape=(5,)))
     self.model.add(Activation('relu'))
 
     self.model.add(Dense(300, init='lecun_uniform'))
@@ -258,11 +258,11 @@ class DeepQAgent(PacmanQAgent):
     features = self.featExtractor.getFeatures(state, action)
     #print(features)
     #state = np.array(features.values())
-    qval = self.model.predict(np.array(features.values()).reshape(1,10), batch_size=1)
+    qval = self.model.predict(np.array(features.values()).reshape(1,5), batch_size=1)
     #print(qval)
     #for key in features.keys():
            #qValue += (self.weights[key] * features[key])
-    #print(qValue)       
+    #print(qValue)
     #print(np.max(qval))
     return np.max(qval)
 
@@ -280,11 +280,12 @@ class DeepQAgent(PacmanQAgent):
     #print("r: " + reward)
     #myReward = self.getValue(nextState)
     #print(reward, myReward)
-    
+
     #print(self.numTraining)
     y = np.zeros((1,5))
-    newQ = self.model.predict(np.array(features.values()).reshape(1,10), batch_size=1)
-    #print(newQ)
+    print features.keys
+    newQ = self.model.predict(np.array(features.values()).reshape(1,5), batch_size=1)
+    print self.model.predict(np.array(features.values()).reshape(1,5), batch_size=1)
     maxQ = np.max(newQ)
 
     self.globalvar += 1
@@ -292,10 +293,15 @@ class DeepQAgent(PacmanQAgent):
       print(self.globalvar)
       traceback.print_stack()
     update = (reward + (self.discount * maxQ))
-    #print(action) 
+    print "reward"
+    print reward
+    print "maq * discount"
+    print (self.discount * maxQ)
     y[0][self.atoi[action]] = update
-    if self.episodesSoFar <= self.numTraining: 
-        self.model.fit(np.array(of.values()).reshape(1,10), y, batch_size=1, nb_epoch=1, verbose=0)
+    if self.episodesSoFar <= self.numTraining:
+        self.model.fit(np.array(of.values()).reshape(1,5), y, batch_size=1, nb_epoch=1, verbose=0)
+
+        self.model.save_weights('test.h5', overwrite=True)
     if  self.discount > 0.1:
         self.discount -= (1/self.numTraining)
     

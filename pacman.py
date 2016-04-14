@@ -266,6 +266,10 @@ class ClassicGameRules:
     game.state = initState
     self.initialState = initState.deepCopy()
     self.quiet = quiet
+
+    import sys, traceback
+    print traceback.print_exc(file=sys.stdout)
+
     return game
 
   def process(self, state, game):
@@ -565,6 +569,7 @@ def readCommand( argv ):
     f = open(options.gameToReplay)
     try: recorded = cPickle.load(f)
     finally: f.close()
+    f = None
     recorded['display'] = args['display']
     replayGame(**recorded)
     sys.exit(0)
@@ -596,6 +601,8 @@ def loadAgent(pacman, nographics):
 
 def replayGame( layout, actions, display ):
     import pacmanAgents, ghostAgents
+    import gc
+    gc.collect()
     rules = ClassicGameRules()
     agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.RandomGhost(i+1) for i in range(layout.getNumGhosts())]
     game = rules.newGame( layout, agents[0], agents[1:], display )
@@ -613,47 +620,58 @@ def replayGame( layout, actions, display ):
     display.finish()
 
 def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0, catchExceptions=False, timeout=300 ):
-  import __main__
-  __main__.__dict__['_display'] = display
+  import sys
 
-  rules = ClassicGameRules(timeout)
-  games = []
 
-  for i in range( numGames ):
-    beQuiet = i < numTraining
-    if beQuiet:
-        # Suppress output and graphics
-        import textDisplay
-        gameDisplay = textDisplay.NullGraphics()
-        rules.quiet = True
-    else:
-        gameDisplay = display
-        rules.quiet = False
-    game = rules.newGame( layout, pacman, ghosts, gameDisplay, beQuiet, catchExceptions)
-    game.run()
-    if not beQuiet: games.append(game)
 
-    if record:
-      import time, cPickle
-      fname = ('recorded-game-%d' % (i + 1)) +  '-'.join([str(t) for t in time.localtime()[1:6]])
-      f = file(fname, 'w')
-      components = {'layout': layout, 'actions': game.moveHistory}
-      cPickle.dump(components, f)
-      f.close()
+  try:
+    import __main__
+    import gc
+    gc.collect()
+    __main__.__dict__['_display'] = display
 
-  if (numGames-numTraining) > 0:
-    scores = [game.state.getScore() for game in games]
-    wins = [game.state.isWin() for game in games]
-    winRate = wins.count(True)/ float(len(wins))
-    print 'Average Score:', sum(scores) / float(len(scores))
-    print 'Scores:       ', ', '.join([str(score) for score in scores])
-    print 'Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate)
-    print 'Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins])
+    rules = ClassicGameRules(timeout)
+    games = []
 
-  return games
+    for i in range( numGames ):
+      beQuiet = i < numTraining
+      if beQuiet:
+          # Suppress output and graphics
+          import textDisplay
+          gameDisplay = textDisplay.NullGraphics()
+          rules.quiet = True
+      else:
+          gameDisplay = display
+          rules.quiet = False
+      game = rules.newGame( layout, pacman, ghosts, gameDisplay, beQuiet, catchExceptions)
+      game.run()
+      gc.collect()
+      if not beQuiet: games.append(game)
+
+      if record:
+        import time, cPickle
+        fname = ('recorded-game-%d' % (i + 1)) +  '-'.join([str(t) for t in time.localtime()[1:6]])
+        f = file(fname, 'w')
+        components = {'layout': layout, 'actions': game.moveHistory}
+        cPickle.dump(components, f)
+        f.close()
+        f = None
+
+    if (numGames-numTraining) > 0:
+      scores = [game.state.getScore() for game in games]
+      wins = [game.state.isWin() for game in games]
+      winRate = wins.count(True)/ float(len(wins))
+      print 'Average Score:', sum(scores) / float(len(scores))
+      print 'Scores:       ', ', '.join([str(score) for score in scores])
+      print 'Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate)
+      print 'Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins])
+      gc.collect()
+    return games
+  except Exception ,e:
+        print str(e)
 
 if __name__ == '__main__':
-  import gc
+
   """
   The main function called when pacman.py is run
   from the command line:
@@ -664,10 +682,16 @@ if __name__ == '__main__':
 
   > python pacman.py --help
   """
+  import sys
 
-  args = readCommand( sys.argv[1:] ) # Get game components based on input
-  runGames( **args )
-  gc.collect()
-  # import cProfile
-  # cProfile.run("runGames( **args )")
-  pass
+
+
+  try:
+    args = readCommand( sys.argv[1:] ) # Get game components based on input
+    runGames( **args )
+
+    # import cProfile
+    # cProfile.run("runGames( **args )")
+  except Exception ,e:
+        print str(e)
+        pass

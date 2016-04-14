@@ -8,6 +8,8 @@
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation
 from keras.optimizers import RMSprop
+from keras.callbacks import History
+
 import numpy as np
 
 
@@ -612,15 +614,15 @@ class Game:
           except Exception,data:
             self.unmute()
             self._agentCrash(agentIndex, quiet=True)
-            gc.collect()
+            #gc.collect()
             return
         else:
           observation = agent.observationFunction(self.state.deepCopy())
-          gc.collect()
+          #gc.collect()
         self.unmute()
       else:
         observation = self.state.deepCopy()
-        gc.collect()
+        #gc.collect()
 
 
       # Solicit an action
@@ -667,7 +669,7 @@ class Game:
           return
       else:
         action = agent.getAction(observation)
-        gc.collect()
+        #gc.collect()
       self.unmute()
 
       # Execute the action
